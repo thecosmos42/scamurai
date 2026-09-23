@@ -8,7 +8,13 @@ import {
   MIN_REQUEST_INTERVAL_MS,
   SCAM_THRESHOLD,
 } from "../lib/config";
-import type { ClassificationResult } from "../lib/nebius";
+import type { ClassificationResponse, ClassificationResult } from "../lib/nebius";
+
+type LatencySample = {
+  lines: number;
+  latencyMs: number;
+  costUsd: number | null;
+};
 
 export function TranscriptPlayer() {
   const [scenarios, setScenarios] = useState<string[]>([]);
@@ -20,6 +26,7 @@ export function TranscriptPlayer() {
   const [isClassifying, setIsClassifying] = useState(false);
   const [linesSinceLastCall, setLinesSinceLastCall] = useState(0);
   const [latestClassification, setLatestClassification] = useState<ClassificationResult | null>(null);
+  const [latencySamples, setLatencySamples] = useState<LatencySample[]>([]);
   const [uploadedTranscript, setUploadedTranscript] = useState<{ name: string; lines: string[] } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -99,13 +106,21 @@ export function TranscriptPlayer() {
           signal: controller.signal,
         });
 
-        const data = (await response.json()) as ClassificationResult;
+        const data = (await response.json()) as ClassificationResponse;
 
         if (requestId !== latestRequestIdRef.current) {
           return;
         }
 
         setLatestClassification(data);
+        setLatencySamples((samples) => [
+          ...samples.slice(-7),
+          {
+            lines: rollingTranscript.split(/\r?\n/).filter(Boolean).length,
+            latencyMs: data.metrics?.latency_ms ?? 0,
+            costUsd: data.metrics?.estimated_cost_usd ?? null,
+          },
+        ]);
       } catch (error) {
         const isAbortError = error instanceof DOMException && error.name === "AbortError";
 
@@ -188,6 +203,7 @@ export function TranscriptPlayer() {
     setRevealedLines([]);
     setLinesSinceLastCall(0);
     setLatestClassification(null);
+    setLatencySamples([]);
     setIsClassifying(false);
     setIsPlaying(true);
   };
@@ -200,6 +216,7 @@ export function TranscriptPlayer() {
     setRevealedLines([]);
     setLinesSinceLastCall(0);
     setLatestClassification(null);
+    setLatencySamples([]);
     setIsClassifying(false);
     setIsPlaying(false);
   };
@@ -321,6 +338,26 @@ export function TranscriptPlayer() {
           <div className="flex items-center justify-between"><p className="text-lg font-bold text-[#10284b]">Why the score is rising</p>{isClassifying ? <span className="text-sm text-[#6d7890]">Analyzing...</span> : null}</div>
           <p className="mt-5 text-lg leading-7 text-[#6d7890]">{latestClassification?.reason ?? "Nothing suspicious heard yet."}</p>
           {flaggedPhrase ? <p className="mt-5 border-t border-[#e9e1d5] pt-4 text-sm font-medium text-[#c45743]">Flagged phrase: “{flaggedPhrase}”</p> : null}
+          <div className="mt-7 border-t border-[#e9e1d5] pt-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-[#10284b]">Latency per transcript</p>
+              <span className="text-xs text-[#8991a0]">server request time</span>
+            </div>
+            {latencySamples.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {latencySamples.map((sample, index) => (
+                  <div key={`${sample.lines}-${index}`} className="flex items-center justify-between text-sm text-[#6d7890]">
+                    <span>Lines 1-{sample.lines}</span>
+                    <span className="font-semibold text-[#173b70]">
+                      {sample.latencyMs} ms{sample.costUsd !== null ? ` · $${sample.costUsd.toFixed(6)}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-[#8991a0]">Metrics will appear after the first analysis request.</p>
+            )}
+          </div>
         </section>
       </div>
     </div>

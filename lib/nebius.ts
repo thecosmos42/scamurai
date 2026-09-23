@@ -7,12 +7,44 @@ export type ClassificationResult = {
   reason: string;
 };
 
+export type ClassificationMetrics = {
+  latency_ms: number;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  estimated_cost_usd: number | null;
+};
+
+export type ClassificationResponse = ClassificationResult & {
+  metrics: ClassificationMetrics;
+};
+
 const fallbackResult: ClassificationResult = {
   score: 0,
   verdict: "uncertain",
   flagged_phrase: null,
   reason: "classification error",
 };
+
+function getMetrics(
+  startedAt: number,
+  usage?: { prompt_tokens?: number; completion_tokens?: number },
+): ClassificationMetrics {
+  const promptTokens = usage?.prompt_tokens ?? null;
+  const completionTokens = usage?.completion_tokens ?? null;
+  const inputRate = Number(process.env.NEBIUS_INPUT_COST_PER_1M_TOKENS);
+  const outputRate = Number(process.env.NEBIUS_OUTPUT_COST_PER_1M_TOKENS);
+  const hasPricing = Number.isFinite(inputRate) && Number.isFinite(outputRate);
+
+  return {
+    latency_ms: Math.round(performance.now() - startedAt),
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    estimated_cost_usd:
+      hasPricing && promptTokens !== null && completionTokens !== null
+        ? (promptTokens * inputRate + completionTokens * outputRate) / 1_000_000
+        : null,
+  };
+}
 
 const systemPrompt = `You are a real-time scam-call risk classifier for an elder-protection product called Scamurai. You receive the transcript of a phone call so far, revealed incrementally as the call happens. Judge ONLY the text provided so far — do not assume anything about how the call will continue.
 
@@ -80,13 +112,15 @@ async function parseClassificationResponse(content: string): Promise<Classificat
   }
 }
 
-export async function classifyTranscript(rollingTranscript: string): Promise<ClassificationResult> {
+export async function classifyTranscript(rollingTranscript: string): Promise<ClassificationResponse> {
+  const startedAt = performance.now();
   const apiKey = process.env.NEBIUS_API_KEY;
 
   if (!apiKey) {
     return {
       ...fallbackResult,
       reason: "missing NEBIUS_API_KEY",
+      metrics: getMetrics(startedAt),
     };
   }
 
@@ -113,10 +147,13 @@ export async function classifyTranscript(rollingTranscript: string): Promise<Cla
     const content = response.choices[0]?.message?.content;
 
     if (!content) {
-      return fallbackResult;
+      return { ...fallbackResult, metrics: getMetrics(startedAt, response.usage ?? undefined) };
     }
 
-    return await parseClassificationResponse(content);
+    return {
+      ...(await parseClassificationResponse(content)),
+      metrics: getMetrics(startedAt, response.usage ?? undefined),
+    };
   } catch (error) {
     console.error("Nebius classification failed", error);
 
@@ -132,12 +169,15 @@ export async function classifyTranscript(rollingTranscript: string): Promise<Cla
       const retryContent = retryResponse.choices[0]?.message?.content;
 
       if (!retryContent) {
-        return fallbackResult;
+        return { ...fallbackResult, metrics: getMetrics(startedAt, retryResponse.usage ?? undefined) };
       }
 
-      return await parseClassificationResponse(retryContent);
+      return {
+        ...(await parseClassificationResponse(retryContent)),
+        metrics: getMetrics(startedAt, retryResponse.usage ?? undefined),
+      };
     } catch {
-      return fallbackResult;
+      return { ...fallbackResult, metrics: getMetrics(startedAt) };
     }
   }
 }

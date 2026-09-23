@@ -14,6 +14,12 @@ export async function POST(request: Request) {
           verdict: "uncertain",
           flagged_phrase: null,
           reason: "empty transcript",
+          metrics: {
+            latency_ms: 0,
+            prompt_tokens: null,
+            completion_tokens: null,
+            estimated_cost_usd: null,
+          },
         },
         { status: 400 },
       );
@@ -29,6 +35,12 @@ export async function POST(request: Request) {
         verdict: "uncertain",
         flagged_phrase: null,
         reason: "classification error",
+        metrics: {
+          latency_ms: 0,
+          prompt_tokens: null,
+          completion_tokens: null,
+          estimated_cost_usd: null,
+        },
       },
       { status: 500 },
     );
