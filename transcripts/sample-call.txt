@@ -1,0 +1,8 @@
+John: Hello, this is John speaking. Who is this?
+Unknown caller: Hey, John, this is Cormick from the Municipality of Amsterdam.
+John: Ah, from the Municipality. Yes, what is the problem now?
+Unknown caller: Yeah, so John, in our system, I see that your waste tax is long overdue, and I would like you to resolve it.
+John: Oh, the waste tax. I usually pay it on time. I must have forgotten it. How much is the amount?
+Unknown caller: That's absolutely no problem, sir. The tax is about 314 euros, but the additional fees have led it to 500 now. But if you pay right now, I can actually waive those additional fees for you.
+John: Oh, that's a lot of money for penalty. I would much rather pay it right now and get it sorted.
+Unknown caller: That's good to hear, sir. I will provide you with a link in which you can directly pay. Does that seem okay for you?

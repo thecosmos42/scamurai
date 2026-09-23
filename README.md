@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scamurai
 
-## Getting Started
+Scamurai is a simulated live-call scam detector built with Next.js and a Nebius-hosted model. It streams a transcript line by line, classifies the rolling conversation in near real time, and flips into a red alert state when strong scam signals appear.
 
-First, run the development server:
+The app uses the Nebius model `Qwen/Qwen3-30B-A3B-Instruct-2507` because it gives a strong balance of instruction-following quality and demo-friendly responsiveness for structured JSON scoring.
+
+## Scope
+
+This is a transcript-driven demo, not a real telephony system. It simulates a live call by revealing pre-written transcript lines incrementally, so the product can show how scam-risk detection behaves in real time without live phone audio or STT.
+
+## Local setup
+
+1. Copy `.env.example` to `.env.local`.
+2. Add your Nebius API key and select a valid model.
+3. Install dependencies:
+
+```bash
+npm install
+```
+
+4. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo flow
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Select a transcript from the dropdown.
+- Click Start call.
+- Watch the transcript reveal line by line.
+- The app calls `/api/classify` on chunk boundaries and updates the risk meter.
+- If the risk score crosses the scam threshold, the UI enters alert mode and pauses the reveal until resumed.
 
-## Learn More
+## Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Use `.env.local` with values like:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEBIUS_API_KEY=your_key_here
+NEBIUS_MODEL_ID=Qwen/Qwen3-30B-A3B-Instruct-2507
+CHUNK_LINE_COUNT=2
+LINE_REVEAL_INTERVAL_MS=1500
+SCAM_THRESHOLD=70
+MIN_REQUEST_INTERVAL_MS=800
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The real key is not committed; `.env.local` is ignored by git.

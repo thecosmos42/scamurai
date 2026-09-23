@@ -1,0 +1,4 @@
+Reception: Hi, this is Bright Dental calling to confirm your appointment.
+Patient: Yes, speaking.
+Reception: Your cleaning is scheduled for Tuesday at 3:00 PM.
+Patient: That works for me, thank you.
