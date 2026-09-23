@@ -49,7 +49,6 @@ SCAM_THRESHOLD=70
 MIN_REQUEST_INTERVAL_MS=800
 ```
 
-The real key is not committed; `.env.local` is ignored by git.
 
 ## Test Nebius directly
 
@@ -61,13 +60,6 @@ npm run test:nebius
 
 It sends the same classifier prompt used by the app and prints the raw JSON response, request latency, token usage, and estimated cost when token rates are configured.
 
-## Phase 8 metrics
-
-The analysis panel records server request latency for each rolling transcript checkpoint, such as `Lines 1-2` or `Lines 1-4`. It keeps the latest eight measurements for the selected run.
-
-The API also returns prompt and completion token counts when Nebius provides usage data. Estimated USD cost is shown only when both optional pricing variables are configured; no price is assumed by default:
-
-```env
 NEBIUS_INPUT_COST_PER_1M_TOKENS=
 NEBIUS_OUTPUT_COST_PER_1M_TOKENS=
 ```
